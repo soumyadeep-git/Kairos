@@ -46,12 +46,12 @@ async def entrypoint(ctx: JobContext):
             break
 
     # Configure LLM (Groq via OpenAI compatibility)
-    # Temperature 0.1 = very deterministic, reduces "thinking out loud"
+    # Temperature 0 = completely deterministic, prevents "thinking out loud"
     llm = openai.LLM(
         model="llama-3.3-70b-versatile",
         base_url="https://api.groq.com/openai/v1",
         api_key=os.getenv("GROQ_API_KEY"),
-        temperature=0.1,
+        temperature=0.0,
     )
 
     # Configure STT
