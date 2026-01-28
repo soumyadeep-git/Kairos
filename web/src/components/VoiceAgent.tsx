@@ -141,7 +141,7 @@ function ToolCallsDisplay() {
 
   if (callSummary) {
     return (
-      <div className="w-full max-w-sm card-trendy bg-[#F0FDF4] border-success animate-grain">
+      <div className="w-full max-w-sm card-trendy bg-[#F0FDF4] border-success">
         <h3 className="text-xl mb-4 flex items-center gap-2 font-serif text-foreground">
           <span>✨</span> All Done!
         </h3>
