@@ -111,22 +111,16 @@ I used all the services that was included in the problem statement which are as 
 
 ## Future Implementations
 
-### Short-Term Roadmap
+### Short-Term
 
 - **Multi-Language Support**: Extend Deepgram and Cartesia configurations to support Spanish, French, and Hindi
 - **Calendar Integration**: Connect with Google Calendar and Outlook for real-time availability checking
 - **SMS Confirmation**: Send booking confirmations via Twilio after successful appointments
-- **Email Notifications**: Send calendar invites and reminder emails post-booking
-
-### Medium-Term Roadmap
-
 - **Voice Biometrics**: Implement speaker identification to recognize returning users without asking for phone numbers
+
+### Long-Term
+
 - **Sentiment Analysis**: Monitor user tone throughout the conversation and escalate to human agents when frustration is detected
-- **Cost Tracking Dashboard**: Display per-call cost breakdown (STT, LLM, TTS) in the admin interface
-- **A/B Testing Framework**: Compare different LLM prompts and TTS voices to optimize conversion rates
-
-### Long-Term Vision
-
 - **Multi-Agent Orchestration**: Deploy specialized sub-agents (scheduling, billing, support) that the main agent can delegate to
 - **Proactive Outreach**: Agent initiates calls to remind users of upcoming appointments or suggest rebookings for cancellations
 - **Fine-Tuned Domain Model**: Train a custom LLM on appointment scheduling conversations for improved accuracy and reduced latency
@@ -139,24 +133,6 @@ I used all the services that was included in the problem statement which are as 
 - Node.js 18+
 - LiveKit Cloud account
 - API keys for Deepgram, Groq, Cartesia, Supabase
-
-### Backend Setup
-
-```bash
-cd agent
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python main.py dev
-```
-
-### Frontend Setup
-
-```bash
-cd web
-npm install
-npm run dev
-```
 
 ### Environment Variables
 
@@ -173,36 +149,45 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your-supabase-anon-key
 ```
 
+### Running the Agent
+
+**Option 1: Direct Python (for development)**
+
+```bash
+cd agent
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python main.py dev
+```
+
+**Option 2: Docker (for production-like environment)**
+
+```bash
+docker build -t kairos-agent .
+docker run --env-file agent/.env kairos-agent
+```
+
+### Running the Frontend
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
 ## Docker Containerization
 
 I containerized the Python agent for consistent deployment across environments.
-
-### Dockerfile Strategy
-
-- **Base Image**: `python:3.11-slim-bookworm` for minimal footprint while maintaining compatibility
-- **Multi-Stage Build Optimization**: System dependencies installed first, then Python packages, then application code (leverages Docker layer caching)
-- **Security**: Non-cached pip install prevents stale packages; cleanup of apt lists reduces image size
-- **Production Ready**: Configured with `CMD` for immediate container startup without additional configuration
-
-### Container Configuration
 
 | Aspect              | Implementation                                     |
 | ------------------- | -------------------------------------------------- |
 | Base Image          | Python 3.11 Slim (Debian Bookworm)                 |
 | System Dependencies | build-essential, python3-dev for native extensions |
 | Working Directory   | /app                                               |
-| Entrypoint          | `python main.py start`                           |
-| Image Size          | ~850MB (includes ML model dependencies)            |
+| Entrypoint          | `python main.py start`                             |
 
-### Deployment
-
-The container is deployed to Railway with automatic builds triggered on every push to the main branch. Railway detects the Dockerfile and handles the build pipeline automatically.
-
-```bash
-# Local build and run
-docker build -t kairos-agent .
-docker run --env-file .env kairos-agent
-```
+The container is deployed to Railway with automatic builds triggered on every push to main.
 
 ## Logging & Observability
 
