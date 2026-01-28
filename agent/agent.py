@@ -197,16 +197,24 @@ Remember: You're a friendly receptionist on the phone. No tech talk!
     @function_tool()
     async def identify_user(
         self, 
-        phone_number: Annotated[str, Field(description="User's phone number")]
+        phone_number: Annotated[str, Field(description="User's phone number - must be 10 digits")]
     ) -> str:
-        """Look up user by phone number."""
+        """Look up user by phone number. Requires a valid 10-digit phone number."""
         logger.info(f"[KairosAgent] identify_user called with: {phone_number}")
+        
+        # Extract digits only
+        digits_only = ''.join(c for c in phone_number if c.isdigit())
+        
+        # Validate phone number length
+        if len(digits_only) < 10:
+            logger.warning(f"[KairosAgent] Invalid phone: {digits_only} ({len(digits_only)} digits)")
+            return f"Hmm, that doesn't seem like a complete phone number. Could you give me all 10 digits please?"
         
         # Publish to UI with actual name
         display_name = self.participant_name or "User"
-        await self.publish_tool_update("identify_user", {"name": display_name, "phone": phone_number})
+        await self.publish_tool_update("identify_user", {"name": display_name, "phone": digits_only[-10:]})
         
-        self.current_user_phone = ''.join(c for c in phone_number if c.isdigit())
+        self.current_user_phone = digits_only[-10:]  # Take last 10 digits
         
         if not self.supabase:
             return "Got it! How can I help you today?"
@@ -234,46 +242,82 @@ Remember: You're a friendly receptionist on the phone. No tech talk!
     @function_tool()
     async def fetch_slots(
         self,
-        date_preference: Annotated[str, Field(description="User's preferred date")] = "tomorrow"
+        date_preference: Annotated[str, Field(description="Date like 'today', 'tomorrow', or YYYY-MM-DD")] = "tomorrow"
     ) -> str:
-        """Get available appointment slots."""
+        """Get available appointment slots for a given date."""
         logger.info(f"[KairosAgent] fetch_slots called for: {date_preference}")
         
         await self.publish_tool_update("fetch_slots", {"date": date_preference})
         
-        tomorrow = datetime.now() + timedelta(days=1)
-        spoken_date = format_date_for_speech(tomorrow.strftime("%Y-%m-%d"))
+        now = datetime.now()
         
-        return (
-            f"Okay, for tomorrow, {spoken_date}, I have openings at ten AM, two PM, and four thirty PM. "
-            "Which works for you?"
-        )
+        # Determine the target date
+        if date_preference.lower() == "today":
+            target_date = now
+            # For today, only show future times
+            current_hour = now.hour
+            available_slots = []
+            if current_hour < 10:
+                available_slots.append("ten AM")
+            if current_hour < 14:
+                available_slots.append("two PM")
+            if current_hour < 16:
+                available_slots.append("four thirty PM")
+            
+            if not available_slots:
+                return "Unfortunately, all slots for today have passed. Would you like to check tomorrow instead?"
+            
+            spoken_date = format_date_for_speech(now.strftime("%Y-%m-%d"))
+            slots_text = ", ".join(available_slots[:-1]) + f", and {available_slots[-1]}" if len(available_slots) > 1 else available_slots[0]
+            return f"For today, {spoken_date}, I have openings at {slots_text}. Which works for you?"
+        else:
+            # Tomorrow or specific date
+            tomorrow = now + timedelta(days=1)
+            spoken_date = format_date_for_speech(tomorrow.strftime("%Y-%m-%d"))
+            return f"For tomorrow, {spoken_date}, I have openings at ten AM, two PM, and four thirty PM. Which works for you?"
     
     @function_tool()
     async def book_appointment(
         self,
-        phone_number: Annotated[str, Field(description="User's phone number")],
+        phone_number: Annotated[str, Field(description="User's 10-digit phone number")],
         date: Annotated[str, Field(description="Date in YYYY-MM-DD format")],
-        time: Annotated[str, Field(description="Time in HH:MM format")]
+        time: Annotated[str, Field(description="Time in HH:MM 24-hour format")]
     ) -> str:
-        """Book an appointment after user confirms."""
+        """Book an appointment. Validates that the time is in the future."""
         logger.info(f"[KairosAgent] book_appointment called: {phone_number}, {date}, {time}")
-        
-        await self.publish_tool_update("book_appointment", {
-            "phone": phone_number,
-            "date": date,
-            "time": time
-        })
         
         spoken_date = format_date_for_speech(date)
         spoken_time = format_time_for_speech(time)
+        
+        # Validate phone number
+        digits_only = ''.join(c for c in phone_number if c.isdigit())
+        if len(digits_only) < 10:
+            return "I need your full 10-digit phone number first. What's your number?"
+        
+        # Validate the appointment is in the future
+        try:
+            appointment_dt = datetime.fromisoformat(f"{date}T{time}:00")
+            now = datetime.now()
+            
+            if appointment_dt <= now:
+                logger.warning(f"[KairosAgent] Past time requested: {appointment_dt} vs now {now}")
+                return f"Oops, {spoken_time} has already passed today. Would you like to book for a later time, or maybe tomorrow?"
+        except ValueError as e:
+            logger.error(f"[KairosAgent] Invalid date/time format: {e}")
+            return "I didn't catch that time correctly. Could you tell me again what time works for you?"
+        
+        await self.publish_tool_update("book_appointment", {
+            "phone": digits_only[-10:],
+            "date": date,
+            "time": time
+        })
         
         if not self.supabase:
             self.actions_taken.append(f"Booked appointment: {spoken_date} at {spoken_time}")
             return f"You're all set for {spoken_date} at {spoken_time}. Anything else?"
         
         try:
-            normalized_phone = ''.join(c for c in phone_number if c.isdigit())
+            normalized_phone = digits_only[-10:]  # Use validated phone
             
             # Find or create user
             user_res = self.supabase.table("users").select("id, full_name").eq("phone_number", normalized_phone).execute()
