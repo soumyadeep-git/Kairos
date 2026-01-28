@@ -1,0 +1,12 @@
+livekit-agents>=1.3.11
+livekit-plugins-deepgram>=0.10.0
+livekit-plugins-openai>=0.10.0
+livekit-plugins-silero>=0.10.0
+livekit-plugins-turn-detector>=0.10.0
+livekit-plugins-noise-cancellation
+livekit-plugins-bey
+livekit-plugins-cartesia
+python-dotenv
+supabase
+onnxruntime
+protobuf
