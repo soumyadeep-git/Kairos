@@ -12,9 +12,8 @@ from livekit import rtc
 
 from agent import KairosAgent
 
-# ============================================================================
 # SETUP
-# ============================================================================
+
 load_dotenv()
 
 logging.basicConfig(
@@ -28,9 +27,9 @@ server = AgentServer()
 # Beyond Presence avatar ID
 DEFAULT_AVATAR_ID = "694c83e2-8895-4a98-bd16-56332ca3f449"
 
-# ============================================================================
+
 # ENTRYPOINT
-# ============================================================================
+
 @server.rtc_session()
 async def entrypoint(ctx: JobContext):
     logger.info(f"[Kairos] Job received for room: {ctx.room.name}")
@@ -121,9 +120,9 @@ async def entrypoint(ctx: JobContext):
     await shutdown.wait()
     logger.info("[Kairos] Session ended")
 
-# ============================================================================
+
 # RUN
-# ============================================================================
+
 if __name__ == "__main__":
     logger.info("=" * 50)
     logger.info("KAIROS VOICE AGENT STARTING")
